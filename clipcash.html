@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClipCash</title>
+<style>
+:root{--bg:#120e26;--card:#1e1840;--ink:#fff;--mute:#a79fcf;--pink:#ff3d7f;--cyan:#2de2e6;--gold:#ffc83d;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;overflow:hidden}
+#app{height:100%;max-width:460px;margin:0 auto;display:flex;flex-direction:column;position:relative}
+main{flex:1;position:relative;overflow:hidden}
+.view{position:absolute;inset:0;display:none}
+.view.on{display:block}
+#feed{overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none}
+#feed::-webkit-scrollbar{display:none}
+.clip{height:100%;scroll-snap-align:start;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:16px}
+.clip .bg{position:absolute;inset:0;background-size:300% 300%;animation:drift 8s ease-in-out infinite alternate}
+@keyframes drift{to{background-position:100% 100%}}
+.clip .big{position:absolute;top:38%;left:0;right:0;text-align:center;font-size:84px;filter:drop-shadow(0 6px 12px #0006)}
+.info{position:relative;z-index:2;max-width:70%;text-shadow:0 1px 6px #0008}
+.info b{font-size:17px}.info p{font-size:14px;margin-top:6px;line-height:1.35}
+.side{position:absolute;right:10px;bottom:24px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:16px}
+.side button{background:none;border:0;color:#fff;font:inherit;font-size:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;text-shadow:0 1px 4px #0008}
+.side .ic{font-size:30px;line-height:1}
+.liked .ic{color:var(--pink);animation:pop .3s}
+@keyframes pop{50%{transform:scale(1.4)}}
+.follow{width:46px;height:46px;border-radius:50%;background:#ffffff33;display:grid;place-items:center;font-size:22px;border:2px solid #fff}
+.follow-btn{margin-top:8px;background:var(--pink);color:#fff;border:0;border-radius:6px;padding:5px 14px;font-weight:700;cursor:pointer}
+.follow-btn.on{background:#ffffff33}
+.heart{position:absolute;font-size:90px;pointer-events:none;z-index:4;animation:fly .8s forwards}
+@keyframes fly{from{opacity:1;transform:scale(.4)}60%{transform:scale(1.2)}to{opacity:0;transform:scale(1.4) translateY(-40px)}}
+nav{display:flex;border-top:1px solid #ffffff1f;background:var(--bg)}
+nav button{flex:1;background:none;border:0;color:var(--mute);padding:12px 4px;font:inherit;font-size:13px;cursor:pointer}
+nav button.on{color:#fff;font-weight:700}
+nav button:focus-visible,.side button:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.panel{padding:60px 18px 20px;overflow-y:auto;height:100%}
+.top{position:absolute;top:10px;left:12px;right:12px;z-index:6;display:flex;justify-content:space-between;pointer-events:none}
+.top button{pointer-events:auto;background:#00000073;color:#fff;border:0;border-radius:20px;padding:8px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;backdrop-filter:blur(6px)}
+.top button.on{background:#fff;color:#111}
+.top button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+nav button span{display:block;font-size:22px;line-height:1.2}
+h1{font-size:26px;margin-bottom:4px}
+.sub{color:var(--mute);font-size:14px;margin-bottom:18px;line-height:1.4}
+.goal{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+.goal .row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
+.bar{height:12px;background:#ffffff1a;border-radius:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:8px;transition:width .5s}
+#fb{background:var(--cyan)}#lb{background:var(--pink)}
+.bal{background:linear-gradient(135deg,var(--pink),#7a3dff);border-radius:16px;padding:18px;margin:16px 0}
+.bal small{opacity:.85}.bal strong{display:block;font-size:34px;margin-top:2px}
+.btn{width:100%;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:10px}
+.btn.p{background:var(--cyan);color:#06222a}
+.btn.s{background:var(--card);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.note{font-size:12px;color:var(--mute);line-height:1.4;margin-top:6px}
+#toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#fff;color:#111;padding:9px 16px;border-radius:20px;font-size:14px;font-weight:700;opacity:0;transition:opacity .25s;z-index:9;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1}
+.stat{display:flex;gap:10px;margin-bottom:12px}
+.stat div{flex:1;background:var(--card);border-radius:12px;padding:12px;text-align:center}
+.stat b{display:block;font-size:20px}.stat span{font-size:12px;color:var(--mute)}
+#auth{position:absolute;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:28px}
+#auth{background:linear-gradient(135deg,#4c1d95 0%,#dc2626 55%,#f59e0b 100%);background-size:220% 220%;animation:drift 10s ease-in-out infinite alternate}
+#auth h1{font-size:38px;text-shadow:0 2px 14px #0000004d}
+#auth .sub{color:#fff;text-shadow:0 1px 8px #0000004d}
+#auth .tabs button{background:#ffffff33;color:#fff}
+#auth .tabs button.on{background:#fff;color:#4c1d95}
+#auth .in{background:#ffffff2e;border:1px solid #ffffff73;color:#fff;backdrop-filter:blur(8px)}
+#auth .in::placeholder{color:#ffffffcc}
+#auth select.in option{color:#111}
+#auth .in:focus-visible,#auth .tabs button:focus-visible,#auth .btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#auth .err{color:#fff;font-weight:700;text-shadow:0 1px 6px #0006}
+#auth .btn.p{background:#fff;color:#4c1d95;box-shadow:0 8px 24px #0000003d}
+@media (prefers-reduced-motion:reduce){#auth{animation:none}}
+.tabs{display:flex;gap:8px;margin:18px 0 14px}
+.tabs button{flex:1;padding:10px;border:0;border-radius:10px;background:var(--card);color:var(--mute);font:inherit;font-weight:700;cursor:pointer}
+.tabs button.on{background:#fff;color:#111}
+.in{width:100%;padding:14px;border-radius:12px;border:1px solid #ffffff2a;background:var(--card);color:#fff;font:inherit;margin-bottom:10px}
+.in:focus-visible,.row2:focus-visible,.tabs button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.err{color:#ff8aa8;font-size:13px;min-height:18px;margin-bottom:8px}
+.row2{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer}
+.row2 .th{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-size:24px;flex:none}
+.row2 .tx{flex:1;min-width:0;font-size:14px}
+.row2 .tx span.d{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.livebadge{background:var(--pink);font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}
+#liveV{position:absolute;inset:0;z-index:15;display:none;flex-direction:column;padding:16px;overflow:hidden}
+#liveV.on{display:flex}
+#liveV>*{position:relative}
+#liveV .bg{position:absolute;inset:0;background-size:300% 300%;animation:drift 8s ease-in-out infinite alternate}
+.ltop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;text-shadow:0 1px 5px #0008}
+.chat{max-height:34%;overflow-y:auto;font-size:14px;text-shadow:0 1px 5px #000a;display:flex;flex-direction:column;gap:5px;scrollbar-width:none}
+.lbar{display:flex;gap:8px;margin-top:10px}
+.lbar .in{margin:0;flex:1;background:#0006}
+.lbar .btn{width:auto;margin:0;padding:12px 16px}
+@media (prefers-reduced-motion:reduce){.clip .bg,#liveV .bg{animation:none}}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="toast" role="status"></div>
+<div class="top"><button data-v="live">🔴 Live</button><button data-v="search">🔍 Search</button></div>
+<div id="auth">
+  <h1>ClipCash</h1>
+  <p class="sub">Log in or create an account to watch, join, save clips and go live.</p>
+  <div class="tabs"><button id="aT1" class="on">Log in</button><button id="aT2">Create account</button></div>
+  <input class="in" id="aE" type="email" placeholder="Email" autocomplete="email" style="display:none">
+  <div id="aX" style="display:none">
+    <select class="in" id="aC" aria-label="Country"><option value="">Country</option><option value="Brazil|+55">Brazil</option><option value="Canada|+1">Canada</option><option value="Egypt|+20">Egypt</option><option value="Ethiopia|+251">Ethiopia</option><option value="France|+33">France</option><option value="Germany|+49">Germany</option><option value="India|+91">India</option><option value="Kenya|+254">Kenya</option><option value="Nigeria|+234">Nigeria</option><option value="Saudi Arabia|+966">Saudi Arabia</option><option value="South Africa|+27">South Africa</option><option value="United Arab Emirates|+971">United Arab Emirates</option><option value="United Kingdom|+44">United Kingdom</option><option value="United States|+1">United States</option></select>
+    <input class="in" id="aPh" type="tel" placeholder="Phone number" autocomplete="tel">
+    <div class="tabs" style="margin:0 0 10px"><button id="aG" class="on">Google</button><button id="aF">Facebook</button></div>
+    <input class="in" id="aS" placeholder="Google account email" autocomplete="off">
+  </div>
+  <input class="in" id="aU" placeholder="Username" autocomplete="username">
+  <input class="in" id="aP" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">
+  <div class="err" id="aErr" role="alert"></div>
+  <button class="btn p" id="aGo">Log in</button>
+</div>
+<div id="liveV">
+  <div class="bg" id="lBg"></div>
+  <div class="ltop"><div><b id="lH"></b> <span class="livebadge">LIVE</span><div id="lT" style="font-size:13px;margin-top:4px"></div></div><div style="text-align:right"><div id="lV" style="font-weight:700"></div><button class="btn s" id="lLeave" style="width:auto;padding:8px 14px;margin:6px 0 0">Leave</button></div></div>
+  <div id="lE" style="flex:1;display:grid;place-items:center;font-size:96px"></div>
+  <div class="chat" id="chat"></div>
+  <div class="lbar"><input class="in" id="lIn" placeholder="Say something" aria-label="Chat message"><button class="btn p" id="lSend">Send</button></div>
+</div>
+<main>
+  <section id="feed" class="view on" aria-label="Video feed"></section>
+  <section id="earn" class="view">
+    <div class="panel">
+      <h1>Creator earnings</h1>
+      <p class="sub">Reach both goals to unlock payouts. After that, you earn $50 for every 100 followers.</p>
+      <div class="stat"><div><b id="sF">0</b><span>Followers</span></div><div><b id="sL">0</b><span>Likes</span></div></div>
+      <div class="goal"><div class="row"><span>Followers</span><span id="tF"></span></div><div class="bar"><i id="fb"></i></div></div>
+      <div class="goal"><div class="row"><span>Likes</span><span id="tL"></span></div><div class="bar"><i id="lb"></i></div></div>
+      <div class="bal"><small id="status">Payouts locked</small><strong id="bal">$0.00</strong></div>
+      <button class="btn p" id="grow">Add 500 followers and 800 likes (demo)</button>
+      <button class="btn s" id="cash" disabled>Request payout</button>
+      <p class="note">This is a prototype. No real money moves and the numbers are simulated in your browser.</p>
+    </div>
+  </section>
+  <section id="search" class="view"><div class="panel"><h1>Search</h1><input class="in" id="q" placeholder="Search creators, clips or hashtags" aria-label="Search" style="margin-top:12px"><div id="res"></div></div></section>
+  <section id="live" class="view"><div class="panel"><h1>Live now</h1><p class="sub">Only streams with more than 700 viewers are shown. Tap one to join.</p><div id="liveList"></div></div></section>
+  <section id="me" class="view">
+    <div class="panel">
+      <h1>Your profile</h1>
+      <p class="sub" id="uname">@you · Creator account</p>
+      <div class="stat"><div><b id="mF">0</b><span>Followers</span></div><div><b id="mL">0</b><span>Likes</span></div><div><b id="mP">0</b><span>Paid out</span></div></div>
+      <h3 style="margin:6px 0 10px">Downloads</h3><div id="dlList"></div>
+      <p class="note">Payouts open at 7,000 followers and 10,000 likes. Downloads are saved inside the app, and sign-in is a demo that works only in this browser tab.</p>
+      <button class="btn s" id="out" style="margin-top:14px">Log out</button>
+    </div>
+  </section>
+</main>
+<nav>
+  <button class="on" data-v="feed"><span>🏠</span>Home</button>
+  <button data-v="earn"><span>💰</span>Earn</button>
+  <button data-v="me"><span>👤</span>Profile</button>
+</nav>
+</div>
+<script>
+const GOAL_F=7000,GOAL_L=10000,PAY=50,PER=100;
+const S={f:1000000,l:9200,bal:0,cr:0,paid:0,views:0};
+const clips=[
+ {u:"@dancewithmina",c:"Wait for the beat drop #dance #fyp",e:"💃",g:"linear-gradient(135deg,#ff3d7f,#7a3dff,#2de2e6)",lk:48200,cm:1203},
+ {u:"@chefomar",c:"60-second injera hack you need to try #food",e:"🍳",g:"linear-gradient(135deg,#ffc83d,#ff6b3d,#d6336c)",lk:31900,cm:872},
+ {u:"@skate.lia",c:"Landed it on the 9th try #skate #sports",e:"🛹",g:"linear-gradient(135deg,#2de2e6,#3d7aff,#1b1464)",lk:22400,cm:455},
+ {u:"@pixelpup",c:"My dog reacts to magic tricks #pets #funny",e:"🐶",g:"linear-gradient(135deg,#7dff6b,#1fb5a8,#124a6b)",lk:67800,cm:2310}
+];
+const $=id=>document.getElementById(id);
+const fmt=n=>n>=1e6?(n/1e6).toFixed(n>=1e7?0:1).replace(/\.0$/,"")+"M":n>=1e3?(n/1e3).toFixed(n>=1e4?0:1).replace(/\.0$/,"")+"K":String(n);
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2000)}
+const unlocked=()=>S.f>=GOAL_F&&S.l>=GOAL_L;
+function renderFeed(){
+ $("feed").innerHTML=clips.map((c,i)=>`
+ <article class="clip" data-i="${i}">
+  <div class="bg" style="background-image:${c.g}"></div>
+  <div class="big">${c.e}</div>
+  <div class="info"><b>${c.u}</b><br><button class="follow-btn" data-f="${i}">Join</button><p>${c.c}</p></div>
+  <div class="side">
+   <button data-like="${i}" aria-label="Like"><span class="ic">♥</span><span id="lk${i}">${fmt(c.lk)}</span></button>
+   <button data-cm="${i}" aria-label="Comments"><span class="ic">💬</span>${fmt(c.cm)}</button>
+   <button data-sh="${i}" aria-label="Share"><span class="ic">↗</span>Share</button>
+   <button data-dl="${i}" aria-label="Download"><span class="ic">⬇</span>Download</button>
+  </div>
+ </article>`).join("");
+}
+function update(){
+ const pf=Math.min(S.f/GOAL_F,1),pl=Math.min(S.l/GOAL_L,1);
+ $("fb").style.width=pf*100+"%";$("lb").style.width=pl*100+"%";
+ $("tF").textContent=S.f.toLocaleString()+" / "+GOAL_F.toLocaleString();
+ $("tL").textContent=S.l.toLocaleString()+" / "+GOAL_L.toLocaleString();
+ $("sF").textContent=$("mF").textContent=fmt(S.f);
+ $("sL").textContent=$("mL").textContent=fmt(S.l);
+ if(unlocked()){const n=Math.floor((S.f-S.cr)/PER);if(n>0){S.bal+=n*PAY;S.cr+=n*PER}}
+ $("bal").textContent="$"+S.bal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+ $("mP").textContent="$"+S.paid.toFixed(2);
+ const u=unlocked();
+ $("status").textContent=u?"Payouts unlocked · $50 per 100 followers":"Payouts locked";
+ $("cash").disabled=!(u&&S.bal>=1);
+}
+let lastU=false;
+function bump(df,dl){
+ S.f+=df;S.l+=dl;
+ if(unlocked()&&!lastU){lastU=true;toast("🎉 Payouts unlocked!")}
+ update();
+}
+$("feed").addEventListener("click",e=>{
+ const lk=e.target.closest("[data-like]"),fl=e.target.closest("[data-f]"),sh=e.target.closest("[data-sh]"),cm=e.target.closest("[data-cm]");
+ if(lk)return like(+lk.dataset.like,lk);
+ if(fl){const on=fl.classList.toggle("on");fl.textContent=on?"Joined":"Join";return}
+ if(sh)return toast("Link copied");
+ if(cm)return toast("Comments coming soon");
+});
+function like(i,btn){
+ const b=btn||document.querySelector(`[data-like="${i}"]`);
+ if(b.classList.contains("liked"))return;
+ b.classList.add("liked");clips[i].lk++;$("lk"+i).textContent=fmt(clips[i].lk);
+ bump(0,1);
+}
+$("feed").addEventListener("dblclick",e=>{
+ const c=e.target.closest(".clip");if(!c)return;
+ const h=document.createElement("div");h.className="heart";h.textContent="❤️";
+ const r=c.getBoundingClientRect();h.style.left=e.clientX-r.left-45+"px";h.style.top=e.clientY-r.top-45+"px";
+ c.appendChild(h);setTimeout(()=>h.remove(),800);like(+c.dataset.i);
+});
+new IntersectionObserver(es=>es.forEach(en=>{
+ if(en.isIntersecting){S.views++;if(unlocked()){S.bal+=RATE*250;update()}}
+}),{root:$("feed"),threshold:.7}).observe||0;
+const io=new IntersectionObserver(es=>es.forEach(en=>{
+ if(en.isIntersecting)S.views++
+}),{root:$("feed"),threshold:.7});
+function observe(){document.querySelectorAll(".clip").forEach(c=>io.observe(c))}
+$("grow").onclick=()=>{bump(500,800);toast("+500 followers, +800 likes")};
+$("cash").onclick=()=>{
+ const a=Math.floor(S.bal*100)/100;S.paid+=a;S.bal-=a;update();toast("Payout of $"+a.toFixed(2)+" requested");
+};
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));
+ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id===b.dataset.v));
+});
+/* auth */
+const users={};let me=null,mode='login';
+function err(t){$('aErr').textContent=t}
+function setMode(m){mode=m;$('aT1').classList.toggle('on',m==='login');$('aT2').classList.toggle('on',m==='signup');$('aGo').textContent=m==='login'?'Log in':'Create account';$('aE').style.display=m==='signup'?'block':'none';$('aX').style.display=m==='signup'?'block':'none';err('')}
+$('aT1').onclick=()=>setMode('login');$('aT2').onclick=()=>setMode('signup');
+let prov='Google';
+function setProv(p){prov=p;$('aG').classList.toggle('on',p==='Google');$('aF').classList.toggle('on',p==='Facebook');$('aS').placeholder=p+' account email or username'}
+$('aG').onclick=()=>setProv('Google');$('aF').onclick=()=>setProv('Facebook');
+$('aC').onchange=()=>{const d=$('aC').value.split('|')[1];$('aPh').placeholder=d?d+' phone number':'Phone number'};
+$('aGo').onclick=()=>{
+ const u=$('aU').value.trim().toLowerCase(),p=$('aP').value,em=$('aE').value.trim();
+ if(u.length<3)return err('Username needs at least 3 characters');
+ if(p.length<6)return err('Password needs at least 6 characters');
+ if(mode==='signup'){
+  if(!(em.includes('@')&&em.includes('.')))return err('Enter a valid email address');
+  if(!$('aC').value)return err('Choose your country');
+  const ph=$('aPh').value.replace(/\D/g,'');
+  if(ph.length<7||ph.length>15)return err('Enter a valid phone number');
+  const so=$('aS').value.trim();
+  if(so.length<3)return err('Enter your '+prov+' account email or username');
+  if(users[u])return err('That username is taken. Try another or log in.');
+  users[u]={p,em,c:$('aC').value.split('|')[0],ph:$('aC').value.split('|')[1]+ph,prov,so};
+ }else if(!users[u]||users[u].p!==p){return err('Wrong username or password. New here? Create an account.')}
+ me=u;$('auth').style.display='none';$('uname').textContent='@'+u+' · Creator account';toast('Welcome, @'+u);
+};
+$('aP').addEventListener('keydown',e=>{if(e.key==='Enter')$('aGo').click()});
+$('out').onclick=()=>{if(cur)leaveLive();me=null;$('aU').value=$('aP').value=$('aE').value='';err('');setMode('login');$('auth').style.display='flex';document.querySelector('nav button[data-v=feed]').click()};
+/* downloads */
+const dls=[];
+function renderDl(){$('dlList').innerHTML=dls.length?dls.map(c=>`<div class='row2'><div class='th' style='background:${c.g}'>${c.e}</div><div class='tx'><b>${c.u}</b><span class='d'>${c.c}</span></div></div>`).join(''):"<p class='note'>No downloads yet. Tap Download on any clip.</p>"}
+$('feed').addEventListener('click',e=>{const d=e.target.closest('[data-dl]');if(!d)return;const c=clips[+d.dataset.dl];if(dls.includes(c))return toast('Already in Downloads');dls.push(c);renderDl();toast('Saved to Downloads')});
+/* live */
+const lives=[
+ {h:'@dancewithmina',t:'Dance class: learn the viral routine',v:3420,e:'💃',g:clips[0].g},
+ {h:'@chefomar',t:'Cooking injera live',v:1860,e:'🍳',g:clips[1].g},
+ {h:'@skate.lia',t:'Skate session Q&A',v:912,e:'🛹',g:clips[2].g},
+ {h:'@pixelpup',t:'Dog tricks marathon',v:5230,e:'🐶',g:clips[3].g}
+];
+const liveRow=(l,i)=>`<div class='row2' data-lv='${i}' tabindex='0' role='button'><div class='th' style='background:${l.g}'>${l.e}</div><div class='tx'><b>${l.h}</b> <span class='livebadge'>LIVE</span><span class='d'>${l.t} · ${l.v.toLocaleString()} watching</span></div></div>`;
+function renderLive(){$('liveList').innerHTML=lives.map((l,i)=>l.v>700?liveRow(l,i):'').join('')}
+let cur=null,t1,t2;
+const names=['sara','abel','nuri','tigist','kebede','hana','yonas'],msgs=['🔥🔥🔥','hello everyone!','how long have you been doing this?','love this','join me!','❤️❤️','so good','first time here'];
+function showV(){$('lV').textContent='👁 '+cur.v.toLocaleString()+' watching'}
+function say(n,m){const d=document.createElement('div'),b=document.createElement('b');b.textContent=n+' ';d.append(b,document.createTextNode(m));$('chat').appendChild(d);$('chat').scrollTop=1e5}
+function openLive(i){
+ if(lives[i].v<=700)return toast('This live needs more than 700 viewers');
+ cur=lives[i];cur.v++;$('lBg').style.backgroundImage=cur.g;$('lH').textContent=cur.h;$('lT').textContent=cur.t;$('lE').textContent=cur.e;$('chat').innerHTML='';showV();$('liveV').classList.add('on');
+ t1=setInterval(()=>{cur.v=Math.max(701,cur.v+Math.floor(Math.random()*24)-8);showV()},1800);
+ t2=setInterval(()=>say(names[Math.random()*names.length|0],msgs[Math.random()*msgs.length|0]),1500);
+}
+function leaveLive(){clearInterval(t1);clearInterval(t2);cur=null;$('liveV').classList.remove('on');renderLive()}
+$('lLeave').onclick=leaveLive;
+function send(){const m=$('lIn').value.trim();if(m&&me){say(me,m);$('lIn').value=''}}
+$('lSend').onclick=send;$('lIn').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
+/* search */
+function runSearch(){
+ const q=$('q').value.trim().toLowerCase();
+ if(!q){$('res').innerHTML="<p class='note' style='margin-top:14px'>Try a creator name or a hashtag like #dance.</p>";return}
+ const cl=clips.map((c,i)=>(c.u+' '+c.c).toLowerCase().includes(q)?`<div class='row2' data-cl='${i}' tabindex='0' role='button'><div class='th' style='background:${c.g}'>${c.e}</div><div class='tx'><b>${c.u}</b><span class='d'>${c.c}</span></div></div>`:'').join('');
+ const lv=lives.map((l,i)=>l.v>700&&(l.h+' '+l.t).toLowerCase().includes(q)?liveRow(l,i):'').join('');
+ $('res').innerHTML=(cl+lv)||"<p class='note' style='margin-top:14px'>No results for that search. Check the spelling or try another word.</p>";
+}
+$('q').addEventListener('input',runSearch);
+function act(e){
+ const lv=e.target.closest('[data-lv]'),cl=e.target.closest('[data-cl]');
+ if(lv)openLive(+lv.dataset.lv);
+ if(cl){document.querySelector('nav button[data-v=feed]').click();$('feed').children[+cl.dataset.cl].scrollIntoView()}
+}
+document.addEventListener('click',act);
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('row2'))act(e)});
+function go(v){document.querySelectorAll('nav button,.top button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id===v))}
+document.querySelectorAll('.top button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.v)));
+renderFeed();observe();update();renderDl();renderLive();runSearch();
+</script>
+</body>
+</html>
